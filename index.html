@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="U9">
+<meta name="theme-color" content="#e8eff0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>U9 Wisselplanner</title>
+<style>
+/* Layout: masonry columns of yellow cards with a cadetblue rim, like the HA "U9" dashboard; one column on a phone */
+:root{
+  color-scheme:light;
+  --page:#e8eff0; --card:#fff3c4; --rim:cadetblue; --ink:#37474f; --brown:#5d4037; --muted:#78909c;
+  --table:#ffffff; --head:#eceff1; --line:#cfd8dc; --green:#2e7d32; --green-dk:#1b5e20; --green-bg:#e8f5e9;
+  --red:#c62828; --red-bg:#ffebee; --on-bg:#c8e6c9; --off-bg:#eceff1; --off-line:#b0bec5; --bank:#fafafa;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--ink)}
+body{font-family:var(--font);font-size:15px;line-height:1.35;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+.page{padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 24px);max-width:1200px;margin:0 auto}
+.top{display:flex;align-items:center;gap:10px;padding:4px 4px 12px}
+.top h1{margin:0;font-size:24px;font-weight:700;color:var(--ink);flex:1;min-width:0}
+.top .sub{font-size:13px;color:var(--muted);font-weight:500}
+.badge{font-weight:700;font-size:14px;padding:4px 12px;border-radius:999px;color:#fff;background:var(--green)}
+.badge.warn{background:var(--red)}
+.grid{columns:360px auto;column-gap:12px}
+.card{break-inside:avoid;margin:0 0 12px;background:var(--card);border:3px solid var(--rim);border-radius:20px;padding:14px;display:block;width:100%}
+.card.plain{background:var(--table);border:1px solid var(--line);border-radius:14px}
+.ct{font-size:18px;font-weight:700;color:var(--ink);margin:0 0 10px}
+.cap{font-size:13px;font-weight:600;color:cadetblue;letter-spacing:.02em;text-transform:uppercase}
+.muted{color:var(--muted);font-size:13px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--rim);outline-offset:2px}
+/* status */
+.status b{font-size:18px}
+.status ul{margin:8px 0 0;padding-left:0;list-style:none}
+.status li{margin-top:4px;color:var(--red)}
+/* presence */
+.who{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.who button{border-radius:14px;padding:12px 4px;font-weight:600;font-size:14px;border:2px solid var(--off-line);background:var(--off-bg);color:var(--muted);overflow-wrap:anywhere;min-height:46px}
+.who button[aria-pressed="true"]{background:var(--on-bg);border-color:var(--green);color:var(--green-dk)}
+/* entity-style rows */
+.rows{display:flex;flex-direction:column;background:var(--table);border-radius:12px;overflow:hidden}
+.er{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line)}
+.er:first-child{border-top:0}
+.er label{flex:1;min-width:0;font-weight:500}
+.er select,.er input{font:inherit;font-size:16px;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink)}
+.er select{max-width:55%}
+.er input{flex:1.4}
+.sect{padding:10px 12px 0;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.act{background:var(--table);border:1px solid var(--line);border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:600;color:var(--ink);min-height:74px}
+.act svg{width:26px;height:26px;fill:var(--rim)}
+/* quarter */
+.qt{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.qt span{font-size:13px;font-weight:500;color:var(--muted);margin-left:6px}
+table.k{width:100%;border-collapse:collapse;table-layout:fixed;background:var(--table);color:#263238;border-radius:10px;overflow:hidden}
+table.k th{padding:6px 8px;text-align:left;font-size:12px;color:#546e7a;background:var(--head);font-weight:600;font-variant-numeric:tabular-nums}
+table.k td{padding:7px 8px;border-top:1px solid var(--line);font-size:15px;overflow-wrap:anywhere}
+table.k td.pos{font-weight:700;color:var(--green);text-align:center;width:44px}
+table.k td.pos.b{color:var(--muted);font-size:11px;padding:7px 0;white-space:nowrap}
+table.k td.uit{background:var(--red-bg);color:var(--red);font-weight:600}
+table.k td.erin{background:var(--green-bg);color:var(--green-dk);font-weight:600}
+table.k td.bank{background:var(--bank)}
+table.k td.cur{box-shadow:inset 0 3px 0 var(--rim)}
+.naar{color:var(--green);white-space:nowrap}
+.tri-u{color:var(--red);font-weight:700}.tri-i{color:var(--green);font-weight:700}
+.wl{margin-top:10px;font-size:14px;color:var(--ink)}
+.wl div{margin-top:2px}
+.leg{margin-top:8px;font-size:12px;color:var(--muted)}
+.nu{background:#43a047;color:#fff;border-radius:10px;padding:1px 8px;font-size:12px;margin-left:8px;font-weight:600}
+/* clock */
+.clock{display:flex;align-items:center;gap:14px}
+.clock .t{font-size:46px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--brown);line-height:1}
+.clock .h{font-weight:600;color:var(--brown)}
+.clock .h.flash{color:var(--red);animation:fl 1s steps(2) infinite}
+@keyframes fl{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.clock .h.flash{animation:none}}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.b{background:var(--table);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-weight:600;min-height:42px}
+.b.go{background:var(--rim);border-color:var(--rim);color:#fff}
+/* controle */
+.tw{overflow-x:auto;border-radius:10px;background:var(--table)}
+table.c{border-collapse:collapse;width:100%;min-width:500px;font-variant-numeric:tabular-nums;font-size:14px}
+table.c th,table.c td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--line)}
+table.c th{background:var(--head);font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#546e7a}
+table.c td:first-child,table.c th:first-child{text-align:left;position:sticky;left:0;background:var(--table);font-weight:600}
+table.c th:first-child{background:var(--head)}
+.y{color:var(--green);font-weight:700}.n{color:var(--red);font-weight:700}
+.share input{width:100%;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink)}
+.empty{color:var(--brown);font-weight:600;font-size:16px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top"><h1>U9 <span class="sub" id="sub"></span></h1><span class="badge" id="badge">OK</span></div>
+  <div class="grid" id="grid"></div>
+  <p class="muted" style="padding:0 4px">Bewaard op dit toestel · werkt ook zonder internet</p>
+</div>
+<script>
+"use strict";
+const POS=[2,5,7,11];
+const SLOTS=15;
+const LABELS=[["0'–7'30","7'30–15'"],["15'–22'30","22'30–30'"],["30'–37'30","37'30–45'"],["45'–52'30","52'30–60'"]];
+const QTIME=["0'–15'","15'–30'","30'–45'","45'–60'"];
+const WTIJD=["7'30","22'30","37'30","52'30"];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $=id=>document.getElementById(id);
+let EXTRA=[];
+
+/* ---------- planner engine (same rules as the Excel/HA version) ---------- */
+function rng(seed){let s=(seed*2654435761)>>>0||1;return()=>{s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296}}
+const PERMS=(()=>{const out=[];const go=(a,r)=>{if(!r.length){out.push(a);return}r.forEach((x,i)=>go(a.concat(x),r.filter((_,j)=>j!==i)))};go([],[0,1,2,3]);return out})();
+
+function benchCost(bench,n,kq){
+  let c=0;const on=[];const cnt=new Array(n).fill(0);
+  for(let s=0;s<8;s++){const row=new Uint8Array(n);for(const p of bench[s]){row[p]=1;cnt[p]++}on.push(row)}
+  const avg=bench.reduce((a,b)=>a+b.length,0)/n;
+  for(let p=0;p<n;p++)c+=1000*(cnt[p]-avg)*(cnt[p]-avg);
+  for(let s=0;s<7;s++)for(let p=0;p<n;p++)if(on[s][p]&&on[s+1][p])c+=400;          // 2× bank na elkaar
+  for(let q=0;q<3;q++){const k=kq[q];if(on[2*q+2][k])c+=150}                          // keeper → bank
+  for(let p=0;p<n;p++){let full=false;for(let q=0;q<4;q++)if(kq[q]===p||(!on[2*q][p]&&!on[2*q+1][p]))full=true;if(!full)c+=150} // volledig kwart
+  const pre=new Array(n).fill(0);                                                       // eerst iedereen 1×
+  for(let s=0;s<8;s++){for(let p=0;p<n;p++)pre[p]+=on[s][p];let mx=-1,mn=99;for(let p=0;p<n;p++){if(pre[p]>mx)mx=pre[p];if(pre[p]<mn)mn=pre[p]}if(mx-mn>1)c+=12}
+  for(let p=0;p<n;p++){let last=-9;for(let s=0;s<8;s++)if(on[s][p]){const g=s-last;if(g===2)c+=10;else if(g===3)c+=3;last=s}} // spreiding
+  if(EXTRA.length){const hi=Math.ceil(avg-1e-9),lo=Math.floor(avg+1e-9);for(let p=0;p<n;p++){if(EXTRA[p]&&cnt[p]<hi)c+=300;else if(!EXTRA[p]&&hi!==lo&&cnt[p]>lo)c+=40}}
+  return c;
+}
+function combos(arr,k){const out=[];const go=(st,acc)=>{if(acc.length===k){out.push(acc.slice());return}for(let i=st;i<arr.length;i++){acc.push(arr[i]);go(i+1,acc);acc.pop()}};go(0,[]);return out}
+function dfsBench(n,kq,B,rand,hardKB){
+  const total=8*B,maxC=Math.ceil(total/n);
+  const opts=[];for(let s=0;s<8;s++){const k=kq[s>>1];const c=combos([...Array(n).keys()].filter(i=>i!==k),B);for(let i=c.length-1;i>0;i--){const j=rand()*(i+1)|0;[c[i],c[j]]=[c[j],c[i]]}opts.push(c)}
+  const cnt=new Array(n).fill(0),cur=[];let best=null,bestC=Infinity,nodes=0;
+  const go=s=>{
+    if(nodes>400000)return;
+    if(s===8){const c=benchCost(cur,n,kq);if(c<bestC){bestC=c;best=cur.map(a=>a.slice())}return}
+    const prev=s?cur[s-1]:[];
+    for(const c of opts[s]){
+      nodes++;
+      let bad=false;
+      for(const p of c){if(prev.includes(p)||cnt[p]>=maxC){bad=true;break}if(hardKB&&s%2===0&&s>0&&kq[(s>>1)-1]===p){bad=true;break}}
+      if(bad)continue;
+      // remaining capacity check
+      let cap=0;for(let p=0;p<n;p++)cap+=maxC-cnt[p];if(cap-B<(7-s)*B)continue;
+      for(const p of c)cnt[p]++;cur.push(c);go(s+1);cur.pop();for(const p of c)cnt[p]--;
+      if(bestC===0)return;
+    }
+  };
+  go(0);return best;
+}
+function saBench(n,kq,B,rand){
+  const elig=[];for(let s=0;s<8;s++){const k=kq[s>>1];elig.push([...Array(n).keys()].filter(i=>i!==k))}
+  let best=null,bestC=Infinity;
+  for(let r=0;r<14;r++){
+    const bench=elig.map(el=>{const a=el.slice();for(let i=a.length-1;i>0;i--){const j=rand()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,B)});
+    let cur=benchCost(bench,n,kq),T=250;
+    for(let it=0;it<4500;it++){
+      const s=rand()*8|0;const outs=elig[s].filter(i=>!bench[s].includes(i));if(!outs.length)continue;
+      const bi=rand()*B|0,old=bench[s][bi];bench[s][bi]=outs[rand()*outs.length|0];
+      const c=benchCost(bench,n,kq);
+      if(c<=cur||rand()<Math.exp((cur-c)/T))cur=c;else bench[s][bi]=old;
+      T*=0.9988;
+    }
+    if(cur<bestC){bestC=cur;best=bench.map(a=>a.slice())}
+  }
+  return best;
+}
+function solveBench(n,kq,B,rand){
+  if(B<=0)return Array.from({length:8},()=>[]);
+  const r=dfsBench(n,kq,B,rand,true)||dfsBench(n,kq,B,rand,false)||saBench(n,kq,B,rand);
+  return r.map(a=>a.slice().sort((x,y)=>x-y));
+}
+function prefScore(p,pos){return p.p1===pos?100:p.p2===pos?10:0}
+function assignQuarter(P,fa,fb,tally){
+  let best=null,bs=-Infinity;
+  for(const pa of PERMS){
+    let sa=0;for(let j=0;j<4;j++){const p=P[fa[pa[j]]];const v=prefScore(p,POS[j]);sa+=v-(v===100?0.05*tally[fa[pa[j]]]:0)}
+    const posA=new Map();for(let j=0;j<4;j++)posA.set(fa[pa[j]],j);
+    for(const pb of PERMS){
+      let sb=sa;
+      for(let j=0;j<4;j++){const i=fb[pb[j]];const v=prefScore(P[i],POS[j]);sb+=v-(v===100?0.05*tally[i]:0);if(posA.has(i)&&posA.get(i)!==j)sb-=6}
+      if(sb>bs){bs=sb;best=[pa.map(x=>fa[x]),pb.map(x=>fb[x])]}
+    }
+  }
+  return best; // [ [idx at 2,5,7,11] for block a, same for b ]
+}
+
+function computeChecks(P,blocks,kq){
+  const n=P.length,B=n-5;
+  const consecPossible=2*B<=n-1, fullPossible=2*B<n-1;
+  const rows=P.map((p,i)=>{
+    const onB=blocks.map(b=>b.bench.includes(i));
+    const bank=onB.filter(Boolean).length;
+    const keeperQ=kq.filter(k=>k===i).length;
+    let twice=false;for(let s=0;s<7;s++)if(onB[s]&&onB[s+1])twice=true;
+    let full=false;for(let q=0;q<4;q++)if(kq[q]===i||(!onB[2*q]&&!onB[2*q+1]))full=true;
+    let kb=false;for(let q=0;q<3;q++)if(kq[q]===i&&onB[2*q+2])kb=true;
+    let first=0,second=0;blocks.forEach(b=>b.field.forEach((x,j)=>{if(x===i){if(p.p1===POS[j])first++;else if(p.p2===POS[j])second++}}));
+    const ok=(!twice||!consecPossible)&&(full||!fullPossible)&&!kb;
+    return {name:p.name,bank,bankMin:bank*7.5,playMin:60-bank*7.5,keeperMin:keeperQ*15,twice,full,kb,first,second,ok};
+  });
+  const ks=kq.filter(k=>k>=0);
+  const keepersDistinct=new Set(ks).size===4;
+  const counts=rows.map(r=>r.bank);const spread=n>5?Math.max(...counts)-Math.min(...counts):0;
+  const allOk=keepersDistinct&&rows.every(r=>r.ok)&&spread<=1;
+  return {rows,keepersDistinct,spread,allOk,consecPossible,fullPossible};
+}
+
+
+
+/* ---------- state: 15 slots "Naam 1e 2e", presence, keepers by name, extra bank, variant ---------- */
+const LS="u9-dashboard-v1";
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+let state={slots:Array.from({length:SLOTS},()=>({txt:"",on:false})),keepers:["","","",""],extra:"",variant:1};
+try{const c=JSON.parse(lsGet(LS)||"null");if(c&&Array.isArray(c.slots))state=fix(c)}catch(e){}
+function fix(c){
+  const slots=Array.from({length:SLOTS},(_,i)=>({txt:String((c.slots[i]||{}).txt||""),on:!!(c.slots[i]||{}).on}));
+  const k=(Array.isArray(c.keepers)?c.keepers:[]).concat(["","","",""]).slice(0,4).map(x=>String(x||""));
+  return {slots,keepers:k,extra:String(c.extra||""),variant:Number.isFinite(+c.variant)?+c.variant:1};
+}
+function save(){lsSet(LS,JSON.stringify(state))}
+function parseSlot(txt){
+  const t=String(txt).trim();if(!t)return null;
+  const m=t.match(/^(.*?)(?:\s+(2|5|7|11))?(?:\s+(2|5|7|11))?\s*$/);
+  const name=(m&&m[1]?m[1]:t).trim();if(!name)return null;
+  const p1=m&&m[2]?+m[2]:null;let p2=m&&m[3]?+m[3]:null;if(p2===p1)p2=null;
+  return {name,p1,p2};
+}
+function roster(){return state.slots.map((s,i)=>{const p=parseSlot(s.txt);return p?{...p,slot:i,on:s.on}:null}).filter(Boolean)}
+
+/* ---------- plan ---------- */
+function makePlan(){
+  const all=roster();const P=all.filter(p=>p.on);const n=P.length;
+  const res={P,n,ok:false,fouten:[]};
+  const names=P.map(p=>p.name.toLowerCase());
+  const dup=names.filter((x,i)=>names.indexOf(x)!==i);
+  if(dup.length)res.fouten.push("Dubbele naam: "+[...new Set(dup)].join(", "));
+  if(n<5){res.fouten.push(`Minstens 5 spelers aanduiden bij "Wie is er?" (nu ${n}).`);return res}
+  if(n>10){res.fouten.push(`Maximaal 10 spelers tegelijk (nu ${n}).`);return res}
+  const kq=state.keepers.map(k=>P.findIndex(p=>p.name===k));
+  kq.forEach((k,q)=>{if(k<0)res.fouten.push(`Kies een aanwezige keeper voor kwart ${q+1}.`)});
+  if(kq.some(k=>k<0))return res;
+  const ex=state.extra.split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
+  EXTRA=P.map(p=>ex.includes(p.name.toLowerCase()));
+  ex.filter(x=>!names.includes(x)).forEach(x=>res.fouten.push(`Extra bank: "${x}" is niet aanwezig.`));
+  P.filter(p=>!p.p1).forEach(p=>res.fouten.push(`${p.name}: geen 1e voorkeur ingevuld.`));
+  const rand=rng(state.variant);
+  const bench=solveBench(n,kq,n-5,rand);
+  const tally=new Array(n).fill(0);const blocks=[];
+  for(let q=0;q<4;q++){
+    const k=kq[q];
+    const fa=[...Array(n).keys()].filter(i=>i!==k&&!bench[2*q].includes(i));
+    const fb=[...Array(n).keys()].filter(i=>i!==k&&!bench[2*q+1].includes(i));
+    const [a,b]=assignQuarter(P,fa,fb,tally);
+    for(const arr of [a,b])arr.forEach((i,j)=>{if(P[i].p1===POS[j])tally[i]++});
+    blocks.push({keeper:k,field:a,bench:bench[2*q]},{keeper:k,field:b,bench:bench[2*q+1]});
+  }
+  res.blocks=blocks;res.kq=kq;res.ok=true;res.checks=computeChecks(P,blocks,kq);
+  const c=res.checks;
+  if(!c.keepersDistinct)res.fouten.push("Dubbele keeper: liefst vier verschillende spelers.");
+  c.rows.forEach(r=>{if(!r.ok){const w=[];if(r.twice&&c.consecPossible)w.push("2× bank na elkaar");if(!r.full&&c.fullPossible)w.push("geen volledig kwart");if(r.kb)w.push("van keeper naar bank");res.fouten.push(`${r.name}: ${w.join(", ")}`)}});
+  return res;
+}
+function quarterData(plan,q){
+  const P=plan.P,A=plan.blocks[2*q],B=plan.blocks[2*q+1];
+  const nm=i=>P[i].name;
+  const outs=A.field.filter(i=>!B.field.includes(i)),ins=B.field.filter(i=>!A.field.includes(i));
+  const rijen=POS.map((pos,j)=>({pos,a:nm(A.field[j]),b:nm(B.field[j]),uit:outs.includes(A.field[j]),erin:ins.includes(B.field[j])}));
+  const bank={a:A.bench.map(i=>({naam:nm(i),naar:B.field.includes(i)?POS[B.field.indexOf(i)]:null})),b:B.bench.map(nm)};
+  const regels=[];
+  ins.forEach(i=>{const pos=POS[B.field.indexOf(i)];const prev=A.field[POS.indexOf(pos)];regels.push({soort:"in",t:outs.includes(prev)?`${nm(i)} in op ${pos} voor ${nm(prev)}`:`${nm(i)} in op ${pos}`})});
+  outs.filter(o=>!ins.some(i=>A.field[B.field.indexOf(i)]===o)).forEach(o=>regels.push({soort:"uit",t:`${nm(o)} naar de bank`}));
+  B.field.forEach((i,j)=>{if(A.field.includes(i)&&A.field.indexOf(i)!==j)regels.push({soort:"swap",t:`${nm(i)} schuift ${POS[A.field.indexOf(i)]} → ${POS[j]}`})});
+  return {keeper:nm(A.keeper),rijen,bank:plan.n>5?bank:null,regels};
+}
+
+/* ---------- live clock ---------- */
+let live={q:0,elapsed:0,startedAt:null};
+try{const l=JSON.parse(lsGet("u9-dash-live")||"null");if(l)live={q:+l.q||0,elapsed:+l.elapsed||0,startedAt:l.startedAt||null}}catch(e){}
+const liveEl=()=>live.elapsed+(live.startedAt?Date.now()-live.startedAt:0);
+const saveLive=()=>lsSet("u9-dash-live",JSON.stringify(live));
+function curBlock(){const e=liveEl()/1000;if(!live.startedAt&&e===0)return null;return live.q*2+(e>=450?1:0)}
+let wakeLock=null;
+async function wake(on){try{if(on&&navigator.wakeLock&&!wakeLock){wakeLock=await navigator.wakeLock.request("screen");wakeLock.addEventListener("release",()=>wakeLock=null)}else if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch(e){}}
+let lastCb;
+function tick(){
+  const t=$("clk");if(!t)return;
+  const e=Math.floor(liveEl()/1000);t.textContent=`${Math.floor(e/60)}:${String(e%60).padStart(2,"0")}`;
+  const h=$("clkh");let txt,fl=false;
+  if(e<450){const r=450-e;txt=e===0&&!live.startedAt?"Klaar voor de aftrap":`Wissel over ${Math.floor(r/60)}:${String(r%60).padStart(2,"0")}`}
+  else if(e<495){txt="WISSELEN";fl=true}else if(e<900){const r=900-e;txt=`Einde kwart over ${Math.floor(r/60)}:${String(r%60).padStart(2,"0")}`}else{txt="Kwart voorbij";fl=true}
+  h.textContent=txt;h.className="h"+(fl?" flash":"");
+  $("lvGo").textContent=live.startedAt?"Pauze":(e>0?"Verder":"Start");
+  const cb=curBlock();if(cb!==lastCb){lastCb=cb;
+    document.querySelectorAll(".cur").forEach(x=>x.classList.remove("cur"));document.querySelectorAll("[data-nu]").forEach(x=>x.innerHTML="");
+    if(cb!=null){document.querySelectorAll(`[data-b="${cb}"]`).forEach(x=>x.classList.add("cur"));const n=document.querySelector(`[data-nu="${cb>>1}"]`);if(n)n.innerHTML='<span class="nu">NU</span>'}}
+}
+setInterval(tick,500);
+
+/* ---------- share / import ---------- */
+function b64e(str){return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function b64d(str){str=str.replace(/-/g,"+").replace(/_/g,"/");while(str.length%4)str+="=";return decodeURIComponent(escape(atob(str)))}
+function pack(){const R=roster();return b64e(JSON.stringify({p:R.map(p=>[p.name,p.p1||0,p.p2||0,p.on?1:0]),k:state.keepers.map(k=>R.findIndex(p=>p.name===k)),x:state.extra}))}
+function unpack(code){
+  const d=JSON.parse(b64d(code));
+  const slots=Array.from({length:SLOTS},(_,i)=>{const r=d.p[i];return r?{txt:[r[0],r[1]||"",r[2]||""].join(" ").trim(),on:!!r[3]}:{txt:"",on:false}});
+  return fix({slots,keepers:(d.k||[]).map(i=>i>=0&&d.p[i]?d.p[i][0]:""),extra:d.x||"",variant:1});
+}
+let pending=null;
+function readHash(){const m=location.hash.match(/ploeg=([A-Za-z0-9_-]+)/);if(!m)return false;try{pending=unpack(m[1])}catch(e){}try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}return true}
+readHash();
+window.addEventListener("hashchange",()=>{if(readHash())render()});
+
+/* ---------- render ---------- */
+const ICON_SHUFFLE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l4 4-4 4V8h-2.6l-2.1 2.6-1.3-1.6L13.4 6H17V3zM3 6h3.6l8 10H17v-3l4 4-4 4v-3h-3.6l-8-10H3V6zm0 10h2.6l2.1-2.6 1.3 1.6L6.6 18H3v-2z"/></svg>';
+const ICON_DICE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm2.5 3A1.5 1.5 0 106 7.5 1.5 1.5 0 007.5 6zm9 0A1.5 1.5 0 1018 7.5 1.5 1.5 0 0016.5 6zM12 10.5A1.5 1.5 0 1013.5 12 1.5 1.5 0 0012 10.5zM7.5 15A1.5 1.5 0 109 16.5 1.5 1.5 0 007.5 15zm9 0a1.5 1.5 0 101.5 1.5 1.5 1.5 0 00-1.5-1.5z"/></svg>';
+let plan=null;
+function render(){
+  plan=makePlan();
+  const ok=plan.ok&&plan.fouten.length===0;
+  $("badge").textContent=ok?"OK":"NAKIJKEN";$("badge").className="badge"+(ok?"":" warn");
+  $("sub").textContent=`· ${plan.n} spelers${plan.n>5?` · ${plan.n-5} op de bank`:""}`;
+  const R=roster();
+  let h="";
+  if(pending){h+=`<div class="card"><div class="cap">Ploeg ontvangen</div><p style="margin:8px 0;color:var(--brown);font-weight:600">${pending.slots.filter(s=>s.txt).map(s=>esc(parseSlot(s.txt).name)).join(", ")}</p>
+    <p class="muted" style="margin:0 0 8px">${R.length?"Dit vervangt de spelers op dit toestel.":"Laad ze in om te beginnen."}</p><div class="btns"><button class="b go" id="impY">Inladen</button><button class="b" id="impN">Negeren</button></div></div>`}
+  // status (markdown card)
+  const summ=plan.ok?`${plan.n} spelers · bankbeurten ${Math.min(...plan.checks.rows.map(r=>r.bank))}–${Math.max(...plan.checks.rows.map(r=>r.bank))} · variant ${state.variant}`:"nog geen schema";
+  h+=`<div class="card plain status"><div class="ct" style="margin:0">Wisselplanner</div><div style="margin-top:6px"><b>${ok?"OK":"NAKIJKEN"}</b> · ${esc(summ)}</div>${plan.fouten.length?`<ul>${plan.fouten.map(f=>`<li>⚠️ ${esc(f)}</li>`).join("")}</ul>`:""}</div>`;
+  // wie is er
+  h+=`<div class="card plain"><div class="ct">Wie is er?</div>${R.length?`<div class="who">${R.map(p=>`<button data-slot="${p.slot}" aria-pressed="${p.on}">${esc(p.name)}</button>`).join("")}</div>`:`<p class="muted" style="margin:0">Vul eerst je spelers in bij "Spelers (naam + voorkeur)".</p>`}</div>`;
+  // keepers
+  const opts=k=>`<option value="">–</option>`+R.filter(p=>p.on).map(p=>`<option${p.name===k?" selected":""}>${esc(p.name)}</option>`).join("");
+  h+=`<div class="card plain"><div class="ct">Keepers</div><div class="rows">${[0,1,2,3].map(q=>`<div class="er"><label for="kp${q}">Keeper kwart ${q+1}</label><select id="kp${q}" data-q="${q}">${opts(state.keepers[q])}</select></div>`).join("")}
+    <div class="sect">Wie mag vaker op de bank? Typ namen met komma, bijv. Louis, Otis. Leeg = wisselt per variant.</div>
+    <div class="er"><label for="extra">Extra bank</label><input id="extra" type="text" value="${esc(state.extra)}" autocomplete="off" autocapitalize="words"></div></div>
+    <div class="acts"><button class="act" id="verdeel">${ICON_SHUFFLE}Verdeel keepers</button><button class="act" id="variant">${ICON_DICE}Andere variant</button></div></div>`;
+  // clock
+  if(plan.ok)h+=`<div class="card"><div class="cap">Wedstrijdklok · kwart <select id="lq" style="font:inherit;font-weight:600;border:1px solid var(--line);border-radius:8px;padding:2px 6px;background:#fff">${[0,1,2,3].map(q=>`<option value="${q}"${live.q===q?" selected":""}>${q+1}</option>`).join("")}</select></div>
+    <div class="clock" style="margin-top:8px"><div class="t" id="clk">0:00</div><div class="h" id="clkh"></div></div>
+    <div class="btns"><button class="b go" id="lvGo">Start</button><button class="b" id="lvR">Reset</button><button class="b" id="lvN">Volgend kwart</button></div></div>`;
+  // quarters
+  if(plan.ok)for(let q=0;q<4;q++){
+    const k=quarterData(plan,q);
+    let t=`<div class="card"><div class="qt">Kwart ${q+1}<span>${QTIME[q]}</span><span data-nu="${q}"></span></div><table class="k"><tr><th style="width:44px"></th><th data-b="${2*q}">${LABELS[q][0]}</th><th data-b="${2*q+1}">${LABELS[q][1]}</th></tr>`;
+    t+=`<tr><td class="pos">K</td><td colspan="2" style="font-weight:600">${esc(k.keeper)} <span style="font-size:11px;color:var(--muted)">heel het kwart</span></td></tr>`;
+    k.rijen.forEach(r=>{t+=`<tr><td class="pos">${r.pos}</td><td data-b="${2*q}" class="${r.uit?"uit":""}">${r.uit?'<span class="tri-u">▼</span> ':""}${esc(r.a)}</td><td data-b="${2*q+1}" class="${r.erin?"erin":""}">${r.erin?'<span class="tri-i">▲</span> ':""}${esc(r.b)}</td></tr>`});
+    if(k.bank)t+=`<tr><td class="pos b">Bank</td><td class="bank" data-b="${2*q}">${k.bank.a.map(x=>esc(x.naam)+(x.naar?` <span class="naar">➞${x.naar}</span>`:"")).join(", ")||"–"}</td><td class="bank" data-b="${2*q+1}">${k.bank.b.map(esc).join(", ")||"–"}</td></tr>`;
+    t+=`</table>`;
+    if(k.regels.length)t+=`<div class="wl"><b>WISSEL OP ${WTIJD[q]}</b>${k.regels.map(r=>{const col=r.soort==="in"?"var(--green)":r.soort==="uit"?"var(--red)":"#546e7a";const tk=r.soort==="in"?"▲":r.soort==="uit"?"▼":"⇄";return `<div style="color:${col}"><b>${tk}</b> ${esc(r.t)}</div>`}).join("")}</div>`;
+    t+=`<div class="leg"><span class="tri-u">▼</span> eruit · <span class="tri-i">▲</span> erin</div></div>`;
+    h+=t;
+  }
+  // controle
+  if(plan.ok){const c=plan.checks;const yn=(v,g)=>`<span class="${v===g?"y":"n"}">${v?"ja":"nee"}</span>`;
+    h+=`<div class="card plain"><div class="ct">Controle</div><div class="tw"><table class="c"><tr><th>Speler</th><th>Bank</th><th>Speelmin</th><th>Keeper</th><th>2× bank</th><th>Vol kwart</th><th>K→bank</th><th>1e/2e</th><th></th></tr>
+    ${c.rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.bank}×</td><td>${String(r.playMin).replace(".",",")}</td><td>${r.keeperMin}</td><td>${yn(r.twice,false)}</td><td>${c.fullPossible?yn(r.full,true):"–"}</td><td>${yn(r.kb,false)}</td><td>${r.first}/${r.second}</td><td>${r.ok?'<span class="y">OK</span>':'<span class="n">!</span>'}</td></tr>`).join("")}</table></div>
+    ${!c.fullPossible?`<p class="muted" style="margin:8px 0 0">Met ${plan.n} spelers speelt wie geen keeper is telkens een half kwart; een volledig kwart is dan niet haalbaar.</p>`:""}</div>`}
+  // spelers
+  h+=`<div class="card plain"><div class="ct">Spelers (naam + voorkeur)</div><div class="rows"><div class="sect" style="border-top:0;padding-bottom:6px">Typ per speler: Naam 1e 2e (bijv. Louis 7 11). Voorkeuren: 2, 5, 7 of 11. Leeg veld = plaats vrij.</div>
+    ${state.slots.map((s,i)=>`<div class="er"><label for="sl${i}" style="flex:0 0 78px">Speler ${String(i+1).padStart(2,"0")}</label><input id="sl${i}" data-i="${i}" type="text" value="${esc(s.txt)}" autocomplete="off" autocapitalize="words" spellcheck="false"></div>`).join("")}</div></div>`;
+  // share
+  if(R.length){const url=location.origin+location.pathname+"#ploeg="+pack();
+    h+=`<div class="card plain share"><div class="ct">Naar een ander toestel</div><p class="muted" style="margin:0 0 8px">Open deze link op een ander toestel of stuur hem naar een medetrainer om dezelfde ploeg in te laden.</p><input id="shareUrl" readonly value="${esc(url)}"><div class="btns"><button class="b" id="copy">Kopieer link</button><span class="muted" id="copyMsg" style="align-self:center"></span></div></div>`}
+  const keepFocus=document.activeElement&&document.activeElement.id;const selStart=document.activeElement&&document.activeElement.selectionStart;
+  $("grid").innerHTML=h;
+  if(keepFocus&&$(keepFocus)&&$(keepFocus).tagName==="INPUT"){const el=$(keepFocus);el.focus();try{el.setSelectionRange(selStart,selStart)}catch(e){}}
+  bind();lastCb=undefined;tick();
+}
+let typingTimer=null;
+function bind(){
+  const on=(id,ev,fn)=>{const el=$(id);if(el)el.addEventListener(ev,fn)};
+  on("impY","click",()=>{state=pending;pending=null;save();render()});
+  on("impN","click",()=>{pending=null;render()});
+  document.querySelectorAll("[data-slot]").forEach(b=>b.addEventListener("click",()=>{const s=state.slots[+b.dataset.slot];s.on=!s.on;save();render()}));
+  document.querySelectorAll("select[data-q]").forEach(s=>s.addEventListener("change",()=>{state.keepers[+s.dataset.q]=s.value;save();render()}));
+  on("extra","change",e=>{state.extra=e.target.value;save();setTimeout(render,0)});
+  on("verdeel","click",()=>{const P=roster().filter(p=>p.on);if(P.length<4)return;const r=rng(state.variant*7+Date.now()%997);const a=P.map(p=>p.name);for(let i=a.length-1;i>0;i--){const j=r()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}state.keepers=a.slice(0,4);save();render()});
+  on("variant","click",()=>{state.variant=(state.variant%9999)+1;save();render()});
+  document.querySelectorAll("input[data-i]").forEach(inp=>{
+    inp.addEventListener("change",()=>{const i=+inp.dataset.i;const old=parseSlot(state.slots[i].txt);state.slots[i].txt=inp.value;const nw=parseSlot(inp.value);
+      if(!old&&nw)state.slots[i].on=true;
+      if(old&&nw&&old.name!==nw.name)state.keepers=state.keepers.map(k=>k===old.name?nw.name:k);
+      save();setTimeout(render,0)});
+  });
+  on("lq","change",e=>{live.q=+e.target.value;saveLive();lastCb=undefined;tick()});
+  on("lvGo","click",()=>{if(live.startedAt){live.elapsed=liveEl();live.startedAt=null;wake(false)}else{live.startedAt=Date.now();wake(true)}saveLive();lastCb=undefined;tick()});
+  on("lvR","click",()=>{live.elapsed=0;live.startedAt=null;wake(false);saveLive();lastCb=undefined;tick()});
+  on("lvN","click",()=>{live.q=Math.min(3,live.q+1);live.elapsed=0;live.startedAt=null;wake(false);saveLive();if($("lq"))$("lq").value=String(live.q);lastCb=undefined;tick()});
+  on("copy","click",async()=>{const i=$("shareUrl");try{await navigator.clipboard.writeText(i.value);$("copyMsg").textContent="Gekopieerd"}catch(e){i.focus();i.select();$("copyMsg").textContent="Geselecteerd, kopieer nu"}});
+}
+render();
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&live.startedAt)wake(true)});
+</script>
+</body>
+</html>
